@@ -1,0 +1,205 @@
+using gold.structures.automaton.*
+using gold.visualization.automaton.*
+
+procedure main(args:String[]) begin
+    lexer = createTransducer()
+    //GAutomataFrame.show(lexer) 
+	testLexer(lexer)
+end
+  
+        
+
+procedure testLexer(M:ITransducer) begin
+	var sc:java.util.Scanner(System.$in)
+	var string,linea: String
+	
+	var sd:java.io.BufferedReader(java.io.InputStreamReader(System.$in))
+	while true do
+		print "----------------------------"
+		print "Enter an input string: "
+		linea:=""
+		string := ""
+		
+		while (sc.hasNextLine()) do
+            linea := sc.nextLine()
+            if linea.isEmpty() then
+                break
+            end
+           
+            
+            if string = "" then
+            	string:= string+linea
+            else
+            	string:= string+ "$"+linea
+            
+          	 end
+       end
+       
+       System.out.println(string)
+		result:=M.acceptsString(string)    
+		tokenStream := M.getOutputString()
+		print "The lexer did "+(result?"":"not ")+" accept the string."
+		if result then print "Token Stream: "+ tokenStream end		
+	end
+end 
+
+ 
+
+
+var names
+  
+function createTransducer():ITransducer begin
+	// Lexer: reads a string with lower casae letters, digits, parenthesis, and spaces.
+	// outputs a string of {'(',')','+','*','v','n'}
+
+	
+	preKW := {"p", "pl" ,"plu", "plus", "t", "ti" ,"tim", "time", "times"} // prefixes of keywords
+	Q:= {"0","1","2","R1","R2","R3","R4","R5","R6","R7","1A",
+		 "B0","B1","B2","B3", "B4","V0", "V1", "V2", "V3",
+		 "V4", "V5","V6","V7", "Err", "E0", "E1", "E2", 
+		 "A0","A1","A2","A3","A4","A5","A6","A7","A8","A9"
+		 ,"A10","A11","A12","A13","A14","A15","A16","A17"}
+	
+	
+	Σ:=('0'‥'9') ∪ ('a' ‥ 'z') ∪ ('A' ‥ 'Z') ∪ {':','_','$','(',')',' ',','} 
+	
+	//R: ROBOT_R, B: BEGIN, V:VARS, A: assign, E: END
+	//v: nombre variable, n:número, t:to	
+	Out:={'(',')','R', 'B', 'V', 'v','n', 'A', 't','E'} 
+	
+	
+	q₀:="0"
+	F:= {"E2"} //Estado final del END
+	return 	GDeterministicTransducer(Q,Σ,Out,q₀,F,δ,g,h)
+end
+
+function δ(q,σ) begin
+	
+	//letras y dígitos
+	letras := ('a' ‥ 'z') ∪ ('A' ‥ 'Z') 
+	digitos := ('0'‥'9')
+	
+	if (q = "Err") then return "Err"
+	elseif  (q = "0" and σ= 'R' )then return "R1"	
+	elseif (q = "R1" and σ= 'O') then return "R2"
+	elseif (q = "R2" and σ= 'B') then return "R3"
+	elseif (q = "R3" and σ= 'O') then return "R4"
+	elseif (q = "R4" and σ= 'T') then return "R5"
+	elseif (q = "R5" and σ= '_') then return "R6"
+	elseif (q = "R6" and σ= 'R') then return "R7"
+	elseif (q = "R7" and σ= '$') then return "1"
+	elseif (q = "1" and σ= 'B') then return "B0"
+	elseif (q = "1" and σ= 'V') then return "V0"
+	elseif (q = "B0" and σ= 'E') then return "B1"
+	elseif (q = "B1" and σ= 'G') then return "B2"
+	elseif (q = "B2" and σ= 'I') then return "B3"
+	elseif (q = "B3" and σ= 'N') then return "B4"
+	elseif (q = "V0" and σ= 'A') then return "V1"
+	elseif (q = "V1" and σ= 'R') then return "V2"
+	elseif (q = "V2" and σ= 'S') then return "V3"
+	elseif (q = "V3" and σ= ' ') then return "V4"
+	elseif (q = "V4" and σ ∈ letras) then return "V5"
+	elseif (q = "V5" and σ ∈ letras) then return "V5"
+	elseif (q = "V5" and σ ∈ (digitos ∪ {'_'} )) then return "V6"
+	elseif (q = "V5" and σ = ',') then return "V7"
+	elseif (q = "V5" and σ= '$') then return "1A"
+	elseif (q = "V6" and σ ∈ (digitos ∪ letras)) then return "V6"
+	elseif (q = "V6" and σ = ',') then return "V7"
+	elseif (q = "V6" and σ = '$') then return "1A"
+	elseif (q = "V7" and σ ∈ letras) then return "V5"
+	elseif (q = "V7" and σ = ' ') then return "V4"
+	elseif (q = "1A" and σ = 'B' ) then return "B0" 
+		
+	//AQUÍ ACABAMOS EL BEGIN acabando en B4, 2 es el nodo de inicio de las rutinas
+	
+	//el símbolo $ es enter, antes de ingresar al transducer se cambia a $
+	//A0 a A17 rutina y termina nuevamente en 2 cuando lee $
+	
+	elseif (q = "B4" and σ = '$' ) then return "2" 
+		
+	//Inicio rutina assign
+	elseif (q = "2" and σ = 'a' ) then return "A0"
+	elseif (q = "A0" and σ = 's' ) then return "A1"
+	elseif (q = "A1" and σ = 's' ) then return "A2"
+	elseif (q = "A2" and σ = 'i' ) then return "A3"
+	elseif (q = "A3" and σ = 'g' ) then return "A4"
+	elseif (q = "A4" and σ = 'n' ) then return "A5"
+	
+	//Leo o un espacio o un :
+	elseif (q = "A5" and σ = ' ' ) then return "A6"
+	elseif (q = "A5" and σ = ':' ) then return "A7"
+	//Si hay espacio leo un :
+	elseif (q = "A6" and σ = ':' ) then return "A7"
+	//Leo un espacio o un número después del :
+	elseif (q = "A7" and σ = ' ' ) then return "A8"
+	elseif (q = "A7" and σ ∈ digitos ) then return "A9"
+	
+	elseif (q = "A8" and σ ∈ digitos ) then return "A9"
+	//Me puedo quedar leyendo números
+	elseif (q = "A9" and σ ∈ digitos ) then return "A9"
+	
+	elseif (q = "A9" and σ = ' ' ) then return "A10"
+		
+	//to
+	elseif (q = "A10" and σ = 't' ) then return "A11"
+	elseif (q = "A11" and σ = 'o' ) then return "A12"
+	//Espacio con : o solo :
+	
+	elseif (q = "A12" and σ = ' ' ) then return "A13"
+	elseif (q = "A12" and σ = ':' ) then return "A14"
+	elseif (q = "A13" and σ = ':' ) then return "A14"
+	
+	//tab + letra o solo letra
+	elseif (q = "A14" and σ = ' ' ) then return "A15"
+	elseif (q = "A14" and σ ∈ letras) then return "A16"
+	elseif (q = "A15" and σ ∈ letras) then return "A16"
+		
+	//Me puedo quedar leyendo letras
+	elseif (q = "A16" and σ ∈ letras) then return "A16"
+	
+	//seguido de la letra puedo tener número o guión
+	elseif (q = "A16" and σ ∈ digitos) then return "A17"
+	elseif (q = "A16" and σ = '_') then return "A17"
+	
+	//Me puedo quedar leyendo combinación letras y/o números
+	elseif (q = "A17" and σ ∈ (digitos ∪ letras)) then return "A17"
+		
+	//Me devuelvo a mi punto de inicio de rutinas que es el estado "2"
+	elseif (q = "A17" and σ = '$') then return "2"
+		
+	
+	//De dos me puedo ir a las demás rutinas( falta) o a END
+	
+	//END, ESTADO FINAL E2
+	elseif (q = "2" and σ = 'E') then return "E0"
+	elseif (q = "E0" and σ = 'N') then return "E1"
+	elseif (q = "E1" and σ = 'D') then return "E2"
+		
+    else  return "Err"
+    end	
+end 
+
+
+
+function g(q) begin
+	var s: String
+	s := λ
+	
+	if q = "B4" then return s+"B"
+	elseif q= "R7" then return s+"R"
+	elseif q= "V3" then return s+"V"
+	elseif q= "V4" then return s+"v"
+	elseif q= "A5" then return s+"A("
+	elseif q= "A10" then return s+"n"
+	elseif q= "A12" then return s+"t"
+	elseif q= "A14" then return s+"v)"
+	elseif q= "E2" then return s+"E"
+	else return λ
+	end
+	
+end
+
+function h(q,σ) begin
+	
+	return λ
+end

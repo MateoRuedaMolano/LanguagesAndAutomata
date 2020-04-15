@@ -1,0 +1,86 @@
+using gold.structures.automaton.*
+using gold.visualization.automaton.*
+
+procedure main(args:String[]) begin
+    lexer = createTransducer()
+	 testLexer(lexer)
+end
+  
+        
+
+procedure testLexer(M:ITransducer) begin
+	var sc:java.util.Scanner(System.$in)
+	while true do
+		print "----------------------------"
+		print "Enter an input string: "
+		string:=sc.nextLine()+" "   //We add a space (which is also a separator to the end of the string)
+		result:=M.acceptsString(string)    
+		tokenStream := M.getOutputString()
+		print "The lexer did "+(result?"":"not ")+" accept the string."
+		if result then print "Token Stream: "+ tokenStream end		
+	end
+end 
+
+ 
+
+
+var names
+  
+function createTransducer():ITransducer begin
+	// Lexer: reads a string with lower casae letters, digits, parenthesis, and spaces.
+	// outputs a string of {'(',')','+','*','v','n'}
+
+	
+	preKW := {"p", "pl" ,"plu", "plus", "t", "ti" ,"tim", "time", "times"} // prefixes of keywords
+	Q:= {"I","Id", "p", "pl" ,"plu", "plus", "t", "ti" ,"tim", "time", "times", "Num","Err"}
+	
+	Σ:=('0'‥'9') ∪ ('a' ‥ 'z') ∪ {'(',')',' '} 
+	Out:={'(',')','+','*','v','n'} 
+	q₀:="I"
+	F:= {"I"}
+	return 	GDeterministicTransducer(Q,Σ,Out,q₀,F,δ,g,h)
+end
+
+function δ(q,σ) begin
+	if (q = "Err") then return "Err"
+	elseif  σ ∈ {'(',')',' '} then return "I"	
+    elseif q="I" and σ='p' then return "p"
+	elseif q="I" and σ='t' then return "t"
+	elseif q="I" and σ ∈ ('0' ‥ '9') then return "Num"
+	elseif	q="Num" and σ ∈ ('0' ‥ '9') then return "Num"
+	elseif	q="Num" and σ ∈ ('a' ‥ 'z') then return "Err"
+	
+	elseif q="p" and σ='l' then return "pl" 
+    elseif q="pl" and σ='u' then return "plu" 
+    elseif q="plu" and σ='s' then return "plus" 
+	elseif q="t" and σ='i' then return "ti" 
+    elseif q="ti" and σ='m' then return "tim" 
+    elseif q="tim" and σ='e' then return "time" 
+    elseif q="time" and σ='s' then return "times" 
+    
+    
+    else  return "Id"
+    end	
+end 
+
+
+
+function g(q) begin
+	return λ
+end
+
+function h(q,σ) begin
+	var s: String
+	s := λ
+
+	if q ∉ {"Err"} and σ ∈ {'(',')',' '} then
+		if σ ∉ {' '} then  s=String.valueOf(σ) end
+		if q=="I" then return s
+    	elseif q=="plus" then return "+"+s 
+   		elseif q=="times" then return "*"+s
+		elseif q=="Num" then return "n"+s
+		else return "v"+s
+ 		end
+	else return  λ
+	end
+end
