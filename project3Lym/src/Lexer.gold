@@ -479,6 +479,7 @@ function rutinaPutOPick(q, σ) begin
 	
 	elseif (q = "P7" and σ ∈ letras) then return "P8"
 	elseif (q = "P8" and σ ∈ letras) then return "P8"
+	elseif (q = "P8" and σ = ' ') then return "PAUX1"
 	elseif (q = "P8" and σ ∈ digitos) then return "P9"
 	elseif (q = "P8" and σ = '_') then return "P9"
 	
