@@ -30,15 +30,15 @@ procedure testLexer(M:ITransducer) begin
             if string = "" then
             	string:= string+linea
             else
-            	string:= string+ "$"+linea
+            	string:= string + "$" + linea
             
           	 end
        end
        
        System.out.println(string)
-		result:=M.acceptsString(string)    
+		result := M.acceptsString(string)    
 		tokenStream := M.getOutputString()
-		print "The lexer did "+(result?"":"not ")+" accept the string."
+		print "The lexer did " + (result?"":"not ") + " accept the string."
 		if result then print "Token Stream: "+ tokenStream end		
 	end
 end 
@@ -63,7 +63,10 @@ function createTransducer():ITransducer begin
 		 "M10","M11", "M12", "MT0","MT1","MT2","MT3",
 		 "MT4","MT5","MT6","MT7","OR0","OR1","OR2","OR3"
 		 ,"OR4","OL0","OL1","OL2","OL3","OF0","OF1","OF2","OF3"
-		 ,"OF4","OB0","OB1","OB2","OB3"} 
+		 ,"OF4","OB0","OB1","OB2","OB3", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8",
+						  "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16",
+						  "P17", "P18", "P19", "P20", "P21", "P22", "P23", "P24",
+						  "P25", "P26", "P27", "PAUX", "PAUX1"} 
 	
 	//Alfabeto que puede leer el autómata
 	
@@ -72,7 +75,7 @@ function createTransducer():ITransducer begin
 	//Alfabeto de salida del autómata
 	//R: ROBOT_R, B: BEGIN, V:VARS, A: assign, E: END v: nombre variable, n:número, t:to	
 	Out:={'(',')','R', 'B', 'V', 'v','n', 'A', 't','E','M','0','7',
-	'8','9','e','$'} 
+	'8','9','e','$', 'K', '8', '5', '6', 'P', 'o'} 
 	
 	//Estado inicial
 	q₀:="0"
@@ -91,17 +94,32 @@ function δ(q,σ) begin
 	
 	//Subconjuntos de estados del automata
 	estadosRobot := {"R0","R1","R2","R3","R4", "R5", "R6"}
+	
 	estadosBegin := {"B0","B1","B2","B3","B4"}
+	
 	estadosVars := {"V0", "V1", "V2", "V3","V4", "V5","V6","V7"}
+	
 	estadosAssign := {"A0","A1","A2","A3","A4","A5","A6","A7","A8","A9","A10",
-		 "A11","A12","A13","A14","A15","A16","A17"} 
+		 "A11","A12","A13","A14","A15","A16","A17"}
+		 
 	estadosMove := {"M0","M1","M2","M3","M4","M5","M6","M7","M8","M9",
 		 "M10","M11", "M12"} 
+		 
 	estadosMoveToThe := {"MT0","MT1","MT2","MT3","MT4","MT5","MT6","MT7"}
+	
 	estadosOrientacionRight :={"OR0","OR1","OR2","OR3","OR4"}
+	
 	estadosOrientacionLeft := {"OL0","OL1","OL2","OL3"}
+	
 	estadosOrientacionFront := {"OF0","OF1","OF2","OF3","OF4"}
+	
 	estadosOrientacionBack := {"OB0","OB1","OB2","OB3"}
+	
+	estadosPutYPick := {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8",
+						  "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16",
+						  "P17", "P18", "P19", "P20", "P21", "P22", "P23", "P24",
+						  "P25", "P26", "P27", "PAUX", "PAUX1"}
+						  
 	
 	//Rutina de error
 	if(q = "Err" and σ = '$') then return "0"
@@ -111,10 +129,10 @@ function δ(q,σ) begin
 	
 	//Rutina inicial -> parto de el estado inicial a cualquier caracter que sea una instrucción
 	
-	elseif(q = "0") then return rutinaInicial(q,σ)
+	elseif (q = "0") then return rutinaInicial(q,σ)
 	
 	//rutina  ROBOT_R
-	elseif  ( q ∈ estadosRobot) then return rutinaRobot(q,σ)
+	elseif (q ∈ estadosRobot) then return rutinaRobot(q,σ)
 		
 	
 	//rutina BEGIN
@@ -144,6 +162,9 @@ function δ(q,σ) begin
 	
 	//rutina orientación front
 	elseif (q ∈ estadosOrientacionFront) then return rutinaOrientacionFront(q,σ)
+	
+	// rutina pick y put
+	elseif (q ∈ estadosPutYPick) then return rutinaPutOPick(q, σ)
 		
 	else
 		return "Err"
@@ -175,7 +196,20 @@ function g(q) begin
 	elseif q= "OL3" then return s+"8)"	
 	elseif q= "OR4" then return s+"7)"	
 		
-		
+	// Token the put y pick
+	
+	elseif q = "PAUX" then return s + "R"
+	elseif q = "P2" then return s + "K"
+	
+	elseif q = "P6" then return s + "("
+	
+	elseif q = "PAUX1" then return s + "v"
+	elseif q = "P11" then return s + "n"
+	
+	elseif q = "P13" then return s + "o"
+	
+	elseif q = "P20" then return s+"5)"
+	elseif q = "P27" then return s+"6)"
 		
 	//elseif q= "E2" then return s+"E"
 	else return λ
@@ -194,6 +228,7 @@ function rutinaInicial(q,σ) begin
 	//elseif (q = "0" and σ= 'i') then return "I0"
 	elseif (q = "0" and σ= ' ') then return "0"
 	elseif (q = "0" and σ= '$') then return "0"
+	elseif (q = "0" and σ = 'p') then return "P0"
 	else return "Err"
 	end
 	
@@ -408,6 +443,102 @@ function rutinaMoveToThe(q,σ) begin
 	end
 end
 
+function rutinaPutOPick(q, σ) begin
+	//Variables auxiliares para facilitar la lectura
+	letras := ('a' ‥ 'z') ∪ ('A' ‥ 'Z') 
+	digitos := ('0'‥'9')
+	
+	if (q = "P0" and σ = 'u') then return "P1"
+	elseif(q = "P1" and σ = 't') then return "PAUX"
+	elseif (q = "PAUX" and σ = ' ') then return "P5"
+	elseif (q = "PAUX" and σ = ':') then return "P6"
+	
+		
+	elseif (q = "P0" and σ = 'i') then return "P3"
+	elseif (q = "P3" and σ = 'c') then return "P4"
+	elseif (q = "P4" and σ = 'k') then return "P2"
+		
+	// Si lee un espacio
+	elseif (q = "P2" and σ = ' ') then return "P5"
+	elseif (q = "P2" and σ = ':') then return "P6"
+	
+	// Si lee los dos puntos de una
+	elseif (q = "P5" and σ = ':') then return "P6"
+	elseif (q = "P6" and σ = ' ' ) then return "P7"
+		
+	/* En caso de ser variable
+	elseif (q= "M5" and σ = ' '  ) then return "M8"
+	* 
+	elseif (q= "M5" and σ ∈ letras ) then return "M6"	
+	elseif (q= "M8" and σ ∈ letras ) then return "M6"	
+	elseif (q = "M6" and σ ∈ letras ) then return "M6"
+	elseif (q = "M6" and σ ∈ digitos ) then return "M7"
+	elseif (q = "M6" and σ = '_' ) then return "M7"
+	elseif (q = "M6" and σ = '$' ) then return "0"
+	*/
+	
+	elseif (q = "P7" and σ ∈ letras) then return "P8"
+	elseif (q = "P8" and σ ∈ letras) then return "P8"
+	elseif (q = "P8" and σ ∈ digitos) then return "P9"
+	elseif (q = "P8" and σ = '_') then return "P9"
+	
+	/* 
+	Me puedo quedar leyendo números
+	elseif (q = "M7" and σ ∈ digitos ) then return "M7"
+	elseif (q = "M7" and σ ∈ letras) then return "M7"
+	elseif (q = "M7" and σ = '$' ) then return "0"
+	elseif (q = "M7" and σ = ' ' ) then return "M12"
+	*/
+	
+	elseif (q = "P9" and σ ∈ digitos) then return "P9"
+	elseif (q = "P9" and σ ∈ letras) then return "P9"
+	elseif (q = "P9" and σ = ' ') then return "PAUX1"
+	elseif (q = "PAUX1" and σ = 'o') then return "P12"
+		
+	/*En caso de que sea un número 
+	elseif (q= "M5" and σ ∈ digitos  ) then return "M11"
+	elseif (q= "M8" and σ ∈ digitos  ) then return "M11"
+	elseif (q= "M11" and σ ∈ digitos  ) then return "M11"
+	elseif (q= "M11" and σ = '$' ) then return "0"
+	elseif (q= "M11" and σ = ' ' ) then return "M12"
+	 */
+	 
+	elseif (q = "P7" and σ ∈ digitos) then return "P10"
+	elseif (q = "P10" and σ ∈ digitos) then return "P10"
+	elseif (q = "P10" and σ = ' ') then return "P11"
+	 
+	elseif (q = "P11" and σ = 'o') then return "P12"
+	elseif (q = "P12" and σ = 'f') then return "P13"
+	 	
+	elseif (q = "P13" and σ = ' ') then return "P14"
+	elseif (q = "P13" and σ = ':') then return "P15"
+	elseif (q = "P14" and σ = ':') then return "P15"
+	 
+	elseif (q = "P15" and σ = ' ') then return "P16"
+	 
+	 // Reconocer chips
+	 
+	elseif (q = "P16" and σ = 'c') then return "P17"
+	elseif (q = "P17" and σ = 'h') then return "P18"
+	elseif (q = "P18" and σ = 'i') then return "P19"
+	elseif (q = "P19" and σ = 'p') then return "P20"
+	elseif (q = "P20" and σ = 's') then return "0"
+	 	
+	 // Reconocer balloons
+	 
+	elseif (q = "P16" and σ = 'b') then return "P21"
+	elseif (q = "P21" and σ = 'a') then return "P22"
+	elseif (q = "P22" and σ = 'l') then return "P23"
+	elseif (q = "P23" and σ = 'l') then return "P24"
+	elseif (q = "P24" and σ = 'o') then return "P25"
+	elseif (q = "P25" and σ = 'o') then return "P26"
+	elseif (q = "P26" and σ = 'n') then return "P27"
+	elseif (q = "P27" and σ = 's') then return "0"
+	else
+		return "Err"
+	end
+end
+
 //rutina orientacionRight
 function rutinaOrientacionRight(q,σ) begin
 
@@ -417,10 +548,7 @@ function rutinaOrientacionRight(q,σ) begin
 	elseif (q = "OR2" and σ = 'h' ) then return "OR3"
 	elseif (q = "OR3" and σ = 't' ) then return "OR4"
 	elseif (q = "OR4" and σ = '$' ) then return "0"
-		
-
-	else
-		return "Err"
+	else return "Err"
 	end
 end
 
@@ -429,9 +557,12 @@ end
 function rutinaOrientacionFront(q,σ) begin
 	
 	//palabra front
-	if (q = "OF0" and σ = 'r' ) then return "OF1"
-	elseif (q = "OF1" and σ = 'o' ) then return "OF2"
-	elseif (q = "OF2" and σ = 'n' ) then return "OF3"
+	if (q = "OF0" and σ = 'r' ) then
+		return "OF1"
+	elseif (q = "OF1" and σ = 'o' ) then
+		return "OF2"
+	elseif (q = "OF2" and σ = 'n' ) then
+		return "OF3"
 	elseif (q = "OF3" and σ = 't' ) then return "OF4"
 	elseif (q = "OF4" and σ = '$' ) then return "0"
 		
@@ -471,6 +602,11 @@ function rutinaOrientacionLeft(q,σ) begin
 		return "Err"
 	end
 end
+
+function rutinaRepeat(q, σ) begin
+		
+end
+
 function h(q,σ) begin
 	var s: String
 	s := λ
@@ -491,3 +627,5 @@ function h(q,σ) begin
 		return λ
 	end
 end
+
+
