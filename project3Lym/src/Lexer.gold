@@ -66,7 +66,8 @@ function createTransducer():ITransducer begin
 		 ,"OF4","OB0","OB1","OB2","OB3", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8",
 						  "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16",
 						  "P17", "P18", "P19", "P20", "P21", "P22", "P23", "P24",
-						  "P25", "P26", "P27", "PAUX", "PAUX1"} 
+						  "P25", "P26", "P27", "PAUX", "PAUX1", "REP0", "REP1", "REP2", "REP3", "REP4", "REP5", "REP6",
+						  "T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"} 
 	
 	//Alfabeto que puede leer el autómata
 	
@@ -75,7 +76,7 @@ function createTransducer():ITransducer begin
 	//Alfabeto de salida del autómata
 	//R: ROBOT_R, B: BEGIN, V:VARS, A: assign, E: END v: nombre variable, n:número, t:to	
 	Out:={'(',')','R', 'B', 'V', 'v','n', 'A', 't','E','M','0','7',
-	'8','9','e','$', 'K', '8', '5', '6', 'P', 'o'} 
+	'8','9','e','$', 'K', '8', '5', '6', 'P', 'o', 'Y'} 
 	
 	//Estado inicial
 	q₀:="0"
@@ -119,6 +120,9 @@ function δ(q,σ) begin
 						  "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16",
 						  "P17", "P18", "P19", "P20", "P21", "P22", "P23", "P24",
 						  "P25", "P26", "P27", "PAUX", "PAUX1"}
+						  
+	estadosRepeat := {"REP0", "REP1", "REP2", "REP3", "REP4", "REP5", "REP6"}					  
+	estadosTimes := {"T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"}
 						  
 	
 	//Rutina de error
@@ -166,6 +170,9 @@ function δ(q,σ) begin
 	// rutina pick y put
 	elseif (q ∈ estadosPutYPick) then return rutinaPutOPick(q, σ)
 		
+	elseif (q ∈ estadosRepeat) then return rutinaRepeat(q, σ)
+	
+	elseif (q ∈ estadosTimes) then return rutinaTimes(q, σ)
 	else
 		return "Err"
     end	
@@ -211,6 +218,9 @@ function g(q) begin
 	elseif q = "P20" then return s+"5)"
 	elseif q = "P27" then return s+"6)"
 		
+	elseif q = "REP5" then return s+"Y"
+	elseif q = "T4" then return s+"t"	
+		
 	//elseif q= "E2" then return s+"E"
 	else return λ
 	end
@@ -229,6 +239,9 @@ function rutinaInicial(q,σ) begin
 	elseif (q = "0" and σ= ' ') then return "0"
 	elseif (q = "0" and σ= '$') then return "0"
 	elseif (q = "0" and σ = 'p') then return "P0"
+	elseif (q = "0" and σ = 't') then return "T0"
+	elseif (q = "0" and σ = 'r') then return "REP0"
+	
 	else return "Err"
 	end
 	
@@ -605,8 +618,52 @@ function rutinaOrientacionLeft(q,σ) begin
 end
 
 function rutinaRepeat(q, σ) begin
+		if (q = "REP0" and σ = 'e') then return "REP1"	
+		elseif (q = "REP1" and σ = 'p') then return "REP2"
+		elseif (q = "REP2" and σ = 'e') then return "REP3"
+		elseif (q = "REP3" and σ = 'a') then return "REP4"
+		elseif (q = "REP4" and σ = 't') then return "REP5"
+			
+		elseif (q = "REP5" and σ = ' ') then return "REP6"
+		elseif (q = "REP5" and σ = ':') then return "0"
+		elseif (q = "REP6" and σ = ':') then return "0"
 		
+		else
+			return "Err"
+		end
 end
+
+function rutinaTimes(q, σ) begin
+	letras := ('a' ‥ 'z') ∪ ('A' ‥ 'Z') 
+	digitos := ('0'‥'9')
+	
+	if (q = "T0" and  σ = 'i') then return "T1"
+	elseif (q = "T1" and σ = 'm') then return "T2"
+	elseif (q = "T2" and σ = 'e') then return "T3"
+	elseif (q = "T3" and σ = 's') then return "T4"
+		
+	elseif (q = "T4" and σ = ' ') then return "T5"
+	elseif (q = "T4" and σ = ':' ) then return "T6"
+	elseif (q = "T5" and σ = ':') then return "T6"
+	
+	elseif (q = "T6" and σ = ' ') then return "T7"
+
+	
+	// Rutina para leer nombres de variables
+	
+	elseif (q = "T7" and σ ∈ letras) then return "T8"
+	elseif (q = "T8" and σ ∈ (letras ∪ digitos)) then return "T8"
+	elseif (q = "T8" and σ = ' ') then return "0"	
+
+	// Rutina para leer enteros
+	elseif (q = "T7" and σ ∈ digitos) then return "T10"
+	elseif (q = "T10" and σ ∈ digitos) then return "T10"
+	elseif (q = "T10" and σ = ' ') then return "0"
+	else
+		return "Err"
+	end
+	
+ end
 
 function h(q,σ) begin
 	var s: String
@@ -614,18 +671,23 @@ function h(q,σ) begin
 	letras := ('a' ‥ 'z') ∪ ('A' ‥ 'Z')
 	digitos := ('0'‥'9')
 	
-	if q= "A14" and σ ∈ letras then return s+"v)"
-	elseif q= "A15" and σ ∈ letras then return s+"v)"	
+	if (q = "A14" and σ ∈ letras) then return s+"v)"
+	elseif (q = "A15" and σ ∈ letras) then return s+"v)"	
 		
 	//Otros tokens para move
-	elseif q= "M3" and σ =':' then return s+"M("	
-	elseif q= "M4" and σ =':' then return s+"M("	
-	elseif q= "M5" and σ ∈ letras then return s+"v)"	
-	elseif q= "M8" and σ ∈ letras then return s+"v)"
-	elseif q= "M8" and σ ∈ digitos then return s+"n)"
-	elseif q= "M5" and σ ∈ digitos then return s+"n)"
-	else
+	elseif (q= "M3" and σ =':') then return s+"M("	
+	elseif (q= "M4" and σ =':') then return s+"M("	
+	elseif (q= "M5" and σ ∈ letras) then return s+"v)"	
+	elseif (q= "M8" and σ ∈ letras) then return s+"v)"
+	elseif (q= "M8" and σ ∈ digitos) then return s+"n)"
+	elseif (q= "M5" and σ ∈ digitos) then return s+"n)"
+		
+	// Tokens para repeat
+	elseif (q = "T8" and σ = ' ') then  return s + "v"	
+	elseif (q = "T10" and σ = ' ') then return s + "n"
+	else 
 		return λ
+
 	end
 end
 
